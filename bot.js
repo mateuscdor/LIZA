@@ -7,14 +7,16 @@ WhatsAsena - Yusuf Usta
 const fs = require("fs");
 const path = require("path");
 const events = require("./events");
-
+const { default: makeWASocket, 
+	useSingleFileAuthState,
+	DisconnectReason,
+	getContentType } = require('@adiwajshing/baileys')
 const raganork = require("./raganork");
 const liza = require('./liza');
 const { FakeDB, takeMessage } = require("./plugins/sql/fake");
 const chalk = require('chalk');
 const config = require('./config');
 const simpleGit = require('simple-git');
-const {WAConnection, MessageOptions, MessageType, Mimetype, Presence} = require('@adiwajshing/baileys');
 const {Message, StringSession, Image, Video} = require('./julie/');
 const { DataTypes } = require('sequelize');
 const { getMessage } = require("./plugins/sql/greetings");
@@ -24,6 +26,7 @@ const got = require('got');
 
 const Language = require('./language');
 const Lang = Language.getString('updater');
+const { state, saveState } = useSingleFileAuthState('./session.json');
 
 // Sql
 const WhatsAsenaDB = config.DATABASE.define('WhatsAsena', {
@@ -69,7 +72,7 @@ Array.prototype.remove = function() {
 
 async function whatsAsena () {
     await config.DATABASE.sync();
-    var StrSes_Db = await WhatsAsenaDB.findAll({
+    /*var StrSes_Db = await WhatsAsenaDB.findAll({
         where: {
           info: 'StringSession'
         }
@@ -87,29 +90,44 @@ async function whatsAsena () {
         conn.loadAuthInfo(Session.deCrypt(config.SESSION)); 
     } else {
         conn.loadAuthInfo(Session.deCrypt(StrSes_Db[0].dataValues.value));
-    }
+    }*/
 
-    conn.on ('credentials-updated', async () => {
+const conn = makeWASocket({
+    logger: pino({level: 'silent'}),
+    printQRInTerminal: true,
+    auth: state
+});
+conn.ev.on('connection.update', async(update) => {
+    const { connection, lastDisconnect } = update
+
+    if (connection === 'close') {
+        if (lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut) {
+            connectToWA()
+        }
+    }else if (connection === 'open') {
+        console.log('conected')
+
+    
         console.log(
             chalk.blueBright.italic('✅ Login information updated!')
         );
 
-        const authInfo = conn.base64EncodedAuthInfo();
+        /*const authInfo = conn.base64EncodedAuthInfo();
         if (StrSes_Db.length < 1) {
             await WhatsAsenaDB.create({ info: "StringSession", value: Session.createStringSession(authInfo) });
         } else {
             await StrSes_Db[0].update({ value: Session.createStringSession(authInfo) });
         }
-    })    
+    }) */   
 
-    conn.on('connecting', async () => {
+    
         console.log(`${chalk.green.bold('Whats')}${chalk.blue.bold('Asena')}
 ${chalk.white.bold('Version:')} ${chalk.red.bold(config.VERSION)}
 ${chalk.blue.italic('ℹ️ Connecting to WhatsApp...')}`);
-    });
+    
     
 
-    conn.on('open', async () => {
+  
         console.log(
             chalk.green.bold('✅ Login successful!')
         );
@@ -162,13 +180,18 @@ ${chalk.blue.italic('ℹ️ Connecting to WhatsApp...')}`);
             } 
       }
         });
-	
-    conn.on('chat-update', async m => {
-        if (!m.hasNewMessage) return;
-        if (!m.messages && !m.count) return;
-        let msg = m.messages.all()[0];
-        if (msg.key && msg.key.remoteJid == 'status@broadcast') return;
 
+})
+
+conn.ev.on('creds.update', saveState);
+	
+    conn.ev.on("messages.upsert", async(m) => {
+
+        if (!m.messages && !m.count) return;
+
+        let msg = m.messages[0]
+
+        if (msg.key && msg.key.remoteJid == 'status@broadcast') return; // WhatsApp Status
         if (config.NO_ONLINE) {
             await conn.updatePresence(msg.key.remoteJid, Presence.unavailable);
         }
@@ -365,19 +388,6 @@ ${chalk.blue.italic('ℹ️ Connecting to WhatsApp...')}`);
         )
     });
 
-    try {
-        await conn.connect();
-    } catch {
-        if (!nodb) {
-            console.log(chalk.red.bold('Eski sürüm stringiniz yenileniyor...'))
-            conn.loadAuthInfo(Session.deCrypt(config.SESSION)); 
-            try {
-                await conn.connect();
-            } catch {
-                return;
-            }
-        }
-    }
 }
 
 whatsAsena();
