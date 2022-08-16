@@ -123,7 +123,8 @@ conn.ev.on('connection.update', async(update) => {
     
         console.log(`${chalk.green.bold('Whats')}${chalk.blue.bold('Asena')}
 ${chalk.white.bold('Version:')} ${chalk.red.bold(config.VERSION)}
-${chalk.blue.italic('ℹ️ Connecting to WhatsApp...')}`);
+${chalk.blue.italic('ℹ️ Connecting to WhatsApp...')}`
+);
     
     
 
@@ -179,7 +180,8 @@ ${chalk.blue.italic('ℹ️ Connecting to WhatsApp...')}`);
                 ); 
             } 
       }
-        });
+       }
+       })
 
 })
 
