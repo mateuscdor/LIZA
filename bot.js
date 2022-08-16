@@ -23,7 +23,7 @@ const { getMessage } = require("./plugins/sql/greetings");
 const git = simpleGit();
 const axios = require('axios');
 const got = require('got');
-
+const pino = require('pino');
 const Language = require('./language');
 const Lang = Language.getString('updater');
 const { state, saveState } = useSingleFileAuthState('./session.json');
