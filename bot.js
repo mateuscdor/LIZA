@@ -11,6 +11,7 @@ const { default: makeWASocket,
 	useSingleFileAuthState,
 	DisconnectReason,
 	getContentType } = require('@adiwajshing/baileys')
+const { state, saveState } = useSingleFileAuthState('./julie/session.json');
 const raganork = require("./raganork");
 const liza = require('./liza');
 const { FakeDB, takeMessage } = require("./plugins/sql/fake");
@@ -26,7 +27,6 @@ const got = require('got');
 const pino = require('pino');
 const Language = require('./language');
 const Lang = Language.getString('updater');
-const { state, saveState } = useSingleFileAuthState('./session.json');
 
 // Sql
 const WhatsAsenaDB = config.DATABASE.define('WhatsAsena', {
